@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { pdfjs } from 'react-pdf';
-import * as diff from 'diff';
-import { saveAs } from 'file-saver';
-import { Download, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { pdfjs } from "react-pdf";
+import * as diff from "diff";
+import { saveAs } from "file-saver";
+import { Download, Loader2, AlertCircle } from "lucide-react";
 
 interface UploadedFile {
   file: File;
@@ -14,9 +14,16 @@ interface UploadedFile {
 interface DiffProcessorProps {
   file1: UploadedFile | null;
   file2: UploadedFile | null;
+  onComplete?: () => void;
+  onError?: (message: string) => void;
 }
 
-const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
+const DiffProcessor: React.FC<DiffProcessorProps> = ({
+  file1,
+  file2,
+  onComplete,
+  onError,
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [diffPdfUrl, setDiffPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,20 +32,20 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-      let fullText = '';
+      let fullText = "";
 
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
           .map((item: any) => item.str)
-          .join(' ');
-        fullText += pageText + '\n\n';
+          .join(" ");
+        fullText += pageText + "\n\n";
       }
 
       return fullText;
     } catch (err) {
-      throw new Error('Erreur lors de l\'extraction du texte du PDF');
+      throw new Error("Erreur lors de l'extraction du texte du PDF");
     }
   };
 
@@ -55,13 +62,13 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
 
     // Calculate differences
     const differences = diff.diffLines(text1, text2);
-    
+
     let yPosition = height - margin;
     let pageCount = 1;
     let currentPage = page;
 
     // Title
-    currentPage.drawText('Comparaison PDF - Différences', {
+    currentPage.drawText("Comparaison PDF - Différences", {
       x: margin,
       y: yPosition,
       size: 16,
@@ -71,7 +78,7 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
     yPosition -= 30;
 
     // Legend
-    currentPage.drawText('Légende:', {
+    currentPage.drawText("Légende:", {
       x: margin,
       y: yPosition,
       size: 14,
@@ -80,7 +87,7 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
     });
     yPosition -= lineHeight;
 
-    currentPage.drawText('• Texte supprimé (rouge)', {
+    currentPage.drawText("• Texte supprimé (rouge)", {
       x: margin + 10,
       y: yPosition,
       size: 10,
@@ -89,7 +96,7 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
     });
     yPosition -= lineHeight * 0.8;
 
-    currentPage.drawText('• Texte ajouté (vert)', {
+    currentPage.drawText("• Texte ajouté (vert)", {
       x: margin + 10,
       y: yPosition,
       size: 10,
@@ -107,19 +114,19 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
         pageCount++;
       }
 
-      const lines = part.value.split('\n').filter(line => line.trim());
-      
+      const lines = part.value.split("\n").filter((line) => line.trim());
+
       for (const line of lines) {
         if (!line.trim()) continue;
 
         // Word wrap for long lines
-        const words = line.split(' ');
-        let currentLine = '';
-        
+        const words = line.split(" ");
+        let currentLine = "";
+
         for (const word of words) {
-          const testLine = currentLine + (currentLine ? ' ' : '') + word;
+          const testLine = currentLine + (currentLine ? " " : "") + word;
           const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-          
+
           if (textWidth > maxWidth && currentLine) {
             // Draw current line
             let color = rgb(0, 0, 0); // default black
@@ -133,10 +140,10 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
               font,
               color,
             });
-            
+
             yPosition -= lineHeight;
             currentLine = word;
-            
+
             // Check if we need a new page
             if (yPosition < margin + 50) {
               currentPage = pdfDoc.addPage([595, 842]);
@@ -147,7 +154,7 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
             currentLine = testLine;
           }
         }
-        
+
         // Draw remaining text
         if (currentLine) {
           let color = rgb(0, 0, 0);
@@ -161,14 +168,14 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
             font,
             color,
           });
-          
+
           yPosition -= lineHeight;
         }
       }
     }
 
     const pdfBytes = await pdfDoc.save();
-    return new Blob([pdfBytes], { type: 'application/pdf' });
+    return new Blob([pdfBytes], { type: "application/pdf" });
   };
 
   const processDiff = async () => {
@@ -186,8 +193,12 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
       const diffBlob = await createDiffPdf(text1, text2);
       const diffUrl = URL.createObjectURL(diffBlob);
       setDiffPdfUrl(diffUrl);
+      if (onComplete) onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du traitement');
+      const message =
+        err instanceof Error ? err.message : "Erreur lors du traitement";
+      setError(message);
+      if (onError) onError(message);
     } finally {
       setIsProcessing(false);
     }
@@ -195,11 +206,14 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
 
   const downloadDiff = () => {
     if (!diffPdfUrl) return;
-    
-    const fileName = `differences_${file1?.name.replace('.pdf', '')}_vs_${file2?.name.replace('.pdf', '')}.pdf`;
-    
+
+    const fileName = `differences_${file1?.name.replace(
+      ".pdf",
+      ""
+    )}_vs_${file2?.name.replace(".pdf", "")}.pdf`;
+
     // Create download link
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = diffPdfUrl;
     link.download = fileName;
     document.body.appendChild(link);
@@ -252,7 +266,8 @@ const DiffProcessor: React.FC<DiffProcessorProps> = ({ file1, file2 }) => {
           <span>Télécharger le fichier de différences</span>
         </button>
         <p className="text-sm text-gray-600 mt-3">
-          Le fichier PDF contient les différences entre vos documents avec la légende colorée
+          Le fichier PDF contient les différences entre vos documents avec la
+          légende colorée
         </p>
       </div>
     );

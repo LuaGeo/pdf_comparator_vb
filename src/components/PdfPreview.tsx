@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import { ChevronLeft, ChevronRight, Eye, AlertCircle } from 'lucide-react';
+import React, { useState } from "react";
+import { Document, Page } from "react-pdf";
+import { ChevronLeft, ChevronRight, Eye, AlertCircle } from "lucide-react";
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Worker é configurado globalmente em src/main.tsx
 
 interface UploadedFile {
   file: File;
@@ -29,16 +28,16 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, title }) => {
   };
 
   const onDocumentLoadError = () => {
-    setError('Erreur lors du chargement du PDF');
+    setError("Erreur lors du chargement du PDF");
     setLoading(false);
   };
 
   const goToPrevPage = () => {
-    setPageNumber(page => Math.max(1, page - 1));
+    setPageNumber((page) => Math.max(1, page - 1));
   };
 
   const goToNextPage = () => {
-    setPageNumber(page => Math.min(numPages, page + 1));
+    setPageNumber((page) => Math.min(numPages, page + 1));
   };
 
   if (!file) {
@@ -59,7 +58,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, title }) => {
         </h3>
         <p className="text-sm text-gray-600 truncate mt-1">{file.name}</p>
       </div>
-      
+
       <div className="p-4">
         {error ? (
           <div className="flex items-center justify-center h-64 bg-red-50 rounded-lg">
@@ -82,8 +81,8 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, title }) => {
                     </div>
                   }
                 >
-                  <Page 
-                    pageNumber={pageNumber} 
+                  <Page
+                    pageNumber={pageNumber}
                     width={300}
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
@@ -91,7 +90,7 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, title }) => {
                 </Document>
               </div>
             </div>
-            
+
             {numPages > 1 && (
               <div className="flex items-center justify-center space-x-4">
                 <button
@@ -101,11 +100,11 @@ const PdfPreview: React.FC<PdfPreviewProps> = ({ file, title }) => {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                
+
                 <span className="text-sm text-gray-600 min-w-0">
                   Page {pageNumber} sur {numPages}
                 </span>
-                
+
                 <button
                   onClick={goToNextPage}
                   disabled={pageNumber >= numPages}
